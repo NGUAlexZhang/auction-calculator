@@ -4,8 +4,7 @@
 #include <string>
 
 struct Order {
-  std::chrono::year_month_day date;                       // Date of the order
-  std::chrono::hh_mm_ss<std::chrono::milliseconds> time;  // Time of the order
+  std::chrono::sys_time<std::chrono::seconds> datetime; // Date and time when the order was placed
   std::string sym;                                        // Stock symbol
   double price;   // Price at which the order is placed
   uint64_t size;  // Number of shares in the order

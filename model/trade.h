@@ -1,16 +1,17 @@
 #pragma once
+
 #include <cstdint>
 #include <string>
 
-enum class EventType {
+enum class TradeType {
   NEW_ORDER,  // New order event
   TRADE,      // Trade event
   CANCEL      // Order cancellation event
 };
 
-struct Event {
+struct Trade {
   int64_t biz_index;  // Business index for the event
-  EventType type;     // Type of the event (NEW_ORDER, TRADE, CANCEL)
+  TradeType type;     // Type of the event (NEW_ORDER, TRADE, CANCEL)
   uint64_t
       order_id;  // Unique identifier for the order associated with the event
   double price;  // Price at which the event occurred (for NEW_ORDER and TRADE)
@@ -23,4 +24,18 @@ struct Event {
                           // event (for TRADE)
   uint64_t
       ask_order_id;  // Unique identifier for the ask order in a trade event
+
+    bool operator==(const Trade& other) const {
+        return this->biz_index == other.biz_index &&
+               this->type == other.type &&
+               this->order_id == other.order_id &&
+               this->price == other.price &&
+               this->size == other.size &&
+               this->side == other.side &&
+               this->bid_order_id == other.bid_order_id &&
+               this->ask_order_id == other.ask_order_id;
+    }
+    bool operator==(const std::uint64_t order_id) const {
+        return this->order_id == order_id;
+    }
 };
