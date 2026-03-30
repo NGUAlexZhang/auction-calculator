@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <unordered_map>
+#include <shared_mutex>
 
 #include "model/order.h"
 

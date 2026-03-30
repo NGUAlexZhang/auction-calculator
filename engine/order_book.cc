@@ -54,7 +54,7 @@ OrderBook& OrderBook::operator=(OrderBook&& other) {
 
 void OrderBook::add_order(const Order& order) {
   auto it = id_map.find(order.order_id);
-  if (it == id_map.end()) {
+  if (it != id_map.end()) {
     throw std::runtime_error("Order ID already exists: " +
                              std::to_string(order.order_id));
   }
