@@ -13,7 +13,6 @@ public:
     OrderBook& operator=(const OrderBook&) noexcept;
     OrderBook& operator=(OrderBook&&) noexcept;
     void add_order(const Order& order);
-    void add_order(Order&& order);
     void remove_order(uint64_t order_id);
 
 private:
