@@ -28,16 +28,18 @@ TEST(OrderSimulatorTest, TestReadCSV) {
 
 TEST(OrderSimulatorTest, TestEndOfFile) {
   std::string test_data_dir = TEST_DATA_DIR "order.csv";
-  EXPECT_THROW({
-    OrderSimulator simulator(test_data_dir);
-    while (true) {
-      auto order = simulator.next_order();
-    }
-  }, std::runtime_error);
-  
+  EXPECT_THROW(
+      {
+        OrderSimulator simulator(test_data_dir);
+        while (true) {
+          auto order = simulator.next_order();
+        }
+      },
+      std::runtime_error);
+
   EXPECT_NO_THROW({
     OrderSimulator simulator(test_data_dir);
-    while(simulator.has_next()) {
+    while (simulator.has_next()) {
       Order order = simulator.next_order();
     }
   });

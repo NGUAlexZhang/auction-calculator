@@ -42,7 +42,8 @@ Order OrderSimulator::next_order() {
     values.push_back(column);
   }
   if (values.size() != this->column_names.size()) {
-    throw std::runtime_error("Column count mismatch in line: " + std::to_string(this->line_number));
+    throw std::runtime_error("Column count mismatch in line: " +
+                             std::to_string(this->line_number));
   }
   Order order;
   std::istringstream datetime_stream(values[0]);
@@ -59,9 +60,7 @@ Order OrderSimulator::next_order() {
   return order;
 }
 
-bool OrderSimulator::has_next() const {
-  return !this->file.eof();
-}
+bool OrderSimulator::has_next() const { return !this->file.eof(); }
 
 OrderSimulator::~OrderSimulator() {
   if (this->file.is_open()) {

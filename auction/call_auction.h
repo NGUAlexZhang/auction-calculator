@@ -1,6 +1,6 @@
 #pragma once
 
 class CallAuction {
-public:
-    CallAuction() = default;
+ public:
+  CallAuction() = default;
 };
