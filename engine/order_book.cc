@@ -1,7 +1,10 @@
 #include "order_book.h"
 
+#include <mutex>
+
 OrderBook::OrderBook(const OrderBook& other) {
   // Deep copy of buy_orders
+  std::shared_lock lock(other.rw_mtx);  // Lock the other OrderBook for reading
   for (const auto& [price, orders] : other.buy_orders) {
     for (const auto& order_ptr : orders) {
       add_order(*order_ptr);
@@ -15,15 +18,22 @@ OrderBook::OrderBook(const OrderBook& other) {
   }
 }
 
-OrderBook::OrderBook(OrderBook&& other)
-    : buy_orders(std::move(other.buy_orders)),
-      sell_orders(std::move(other.sell_orders)),
-      id_map(std::move(other.id_map)) {}
+OrderBook::OrderBook(OrderBook&& other) {
+  std::shared_lock lock(other.rw_mtx);  // Lock the other OrderBook for reading
+  buy_orders = std::move(other.buy_orders);
+  sell_orders = std::move(other.sell_orders);
+  id_map = std::move(other.id_map);
+}
 
 OrderBook& OrderBook::operator=(const OrderBook& other) {
   if (this == &other) {
     return *this;
   }
+  std::unique_lock write_lock(
+      rw_mtx, std::defer_lock);  // Lock this OrderBook for writing
+  std::shared_lock read_lock(
+      other.rw_mtx, std::defer_lock);  // Lock the other OrderBook for reading
+  std::lock(write_lock, read_lock);    // Lock both OrderBooks without deadlock
   this->buy_orders.clear();
   this->sell_orders.clear();
   this->id_map.clear();
@@ -46,6 +56,11 @@ OrderBook& OrderBook::operator=(OrderBook&& other) {
   if (this == &other) {
     return *this;
   }
+  std::unique_lock write_lock(
+      rw_mtx, std::defer_lock);  // Lock this OrderBook for writing
+  std::shared_lock read_lock(
+      other.rw_mtx, std::defer_lock);  // Lock the other OrderBook for reading
+  std::lock(write_lock, read_lock);    // Lock both OrderBooks without deadlock
   this->buy_orders = std::move(other.buy_orders);
   this->sell_orders = std::move(other.sell_orders);
   this->id_map = std::move(other.id_map);
@@ -53,6 +68,7 @@ OrderBook& OrderBook::operator=(OrderBook&& other) {
 }
 
 void OrderBook::add_order(const Order& order) {
+  std::unique_lock lock(rw_mtx);  // Lock the OrderBook for writing
   auto it = id_map.find(order.order_id);
   if (it != id_map.end()) {
     throw std::runtime_error("Order ID already exists: " +
@@ -70,6 +86,7 @@ void OrderBook::add_order(const Order& order) {
 }
 
 void OrderBook::remove_order(uint64_t order_id) {
+  std::unique_lock lock(rw_mtx);  // Lock the OrderBook for writing
   auto it = id_map.find(order_id);
   if (it == id_map.end()) {
     throw std::runtime_error("Order ID not found: " + std::to_string(order_id));

@@ -2,8 +2,8 @@
 #include <list>
 #include <map>
 #include <memory>
-#include <unordered_map>
 #include <shared_mutex>
+#include <unordered_map>
 
 #include "model/order.h"
 
@@ -27,5 +27,6 @@ class OrderBook {
   std::map<double, std::list<OrderPtr>> buy_orders;   // Buy orders sorted
   std::map<double, std::list<OrderPtr>> sell_orders;  // Sell orders sorted
   std::unordered_map<uint64_t, OrderLocation>
-      id_map;  // Map from order ID to order location
+      id_map;                        // Map from order ID to order location
+  mutable std::shared_mutex rw_mtx;  // Mutex for thread safety
 };
