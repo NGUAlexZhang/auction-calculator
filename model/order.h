@@ -4,12 +4,13 @@
 #include <string>
 
 struct Order {
-  std::chrono::sys_time<std::chrono::seconds> datetime; // Date and time when the order was placed
-  std::string sym;                                        // Stock symbol
-  double price;   // Price at which the order is placed
-  uint64_t size;  // Number of shares in the order
-  int16_t side;   // 1 for buy, -1 for sell at Shanghai Stock Exchange, 3 for
-                  // Borrow in, -3 for Borrow out at Shenzhen Stock Exchange
+  std::chrono::sys_time<std::chrono::milliseconds>
+      datetime;     // Date and time when the order was placed
+  std::string sym;  // Stock symbol
+  double price;     // Price at which the order is placed
+  uint64_t size;    // Number of shares in the order
+  int16_t side;     // 1 for buy, -1 for sell at Shanghai Stock Exchange, 3 for
+                    // Borrow in, -3 for Borrow out at Shenzhen Stock Exchange
   uint16_t order_type;  // 0 is unused at Shanghai Stock Exchange, 1 for market
                         // order, 2 for limit order, 3 for best price order at
                         // Shenzhen Stock Exchange

@@ -25,17 +25,14 @@ struct Trade {
   uint64_t
       ask_order_id;  // Unique identifier for the ask order in a trade event
 
-    bool operator==(const Trade& other) const {
-        return this->biz_index == other.biz_index &&
-               this->type == other.type &&
-               this->order_id == other.order_id &&
-               this->price == other.price &&
-               this->size == other.size &&
-               this->side == other.side &&
-               this->bid_order_id == other.bid_order_id &&
-               this->ask_order_id == other.ask_order_id;
-    }
-    bool operator==(const std::uint64_t order_id) const {
-        return this->order_id == order_id;
-    }
+  bool operator==(const Trade& other) const {
+    return this->biz_index == other.biz_index && this->type == other.type &&
+           this->order_id == other.order_id && this->price == other.price &&
+           this->size == other.size && this->side == other.side &&
+           this->bid_order_id == other.bid_order_id &&
+           this->ask_order_id == other.ask_order_id;
+  }
+  bool operator==(const std::uint64_t order_id) const {
+    return this->order_id == order_id;
+  }
 };

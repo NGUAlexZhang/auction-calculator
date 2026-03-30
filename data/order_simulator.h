@@ -2,17 +2,20 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
-#include "model/order.h"
+
+#include "order.h"
 
 class OrderSimulator {
-public:
-    explicit OrderSimulator() = default;
-    explicit OrderSimulator(const std::filesystem::path& order_path);
-    [[nodiscard]] Order next_order();
+ public:
+  explicit OrderSimulator() = delete;
+  explicit OrderSimulator(const std::filesystem::path& order_path);
+  ~OrderSimulator();
+  [[nodiscard]] Order next_order();
+  [[nodiscard]] bool has_next() const;
 
-private:
-    void read_csv(const std::filesystem::path& order_path);
-    std::ifstream file;
-    bool eof_reached;
-    std::vector<std::string> column_names;
+ private:
+  void read_csv(const std::filesystem::path& order_path);
+  std::ifstream file;
+  std::vector<std::string> column_names;
+  std::uint32_t line_number;
 };

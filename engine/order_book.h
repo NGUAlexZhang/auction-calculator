@@ -17,5 +17,4 @@ private:
     std::map<double, std::vector<Order>> buy_orders;  // Buy orders sorted
     std::map<double, std::vector<Order>> sell_orders; // Sell orders sorted
     std::unordered_map<uint64_t, Order> order_id_map; // Map for quick order lookup by order_id
-
 };
