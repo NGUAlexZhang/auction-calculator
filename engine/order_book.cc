@@ -2,30 +2,30 @@
 
 #include <mutex>
 
-OrderBook::OrderBook(const OrderBook& other) {
+OrderBook::OrderBook(const OrderBook& other) noexcept {
   // Deep copy of buy_orders
   std::shared_lock lock(other.rw_mtx);  // Lock the other OrderBook for reading
   for (const auto& [price, orders] : other.buy_orders) {
-    for (const auto& order_ptr : orders) {
-      add_order(*order_ptr);
+    for (const auto& order : orders) {
+      add_order(order);
     }
   }
   // Deep copy of sell_orders
   for (const auto& [price, orders] : other.sell_orders) {
-    for (const auto& order_ptr : orders) {
-      add_order(*order_ptr);
+    for (const auto& order : orders) {
+      add_order(order);
     }
   }
 }
 
-OrderBook::OrderBook(OrderBook&& other) {
+OrderBook::OrderBook(OrderBook&& other) noexcept {
   std::shared_lock lock(other.rw_mtx);  // Lock the other OrderBook for reading
   buy_orders = std::move(other.buy_orders);
   sell_orders = std::move(other.sell_orders);
   id_map = std::move(other.id_map);
 }
 
-OrderBook& OrderBook::operator=(const OrderBook& other) {
+OrderBook& OrderBook::operator=(const OrderBook& other) noexcept {
   if (this == &other) {
     return *this;
   }
@@ -39,20 +39,20 @@ OrderBook& OrderBook::operator=(const OrderBook& other) {
   this->id_map.clear();
 
   for (auto& [price, orders] : other.buy_orders) {
-    for (auto& order_ptr : orders) {
-      add_order(*order_ptr);
+    for (auto& order : orders) {
+      add_order(order);
     }
   }
   for (auto& [price, orders] : other.sell_orders) {
-    for (auto& order_ptr : orders) {
-      add_order(*order_ptr);
+    for (auto& order : orders) {
+      add_order(order);
     }
   }
 
   return *this;
 }
 
-OrderBook& OrderBook::operator=(OrderBook&& other) {
+OrderBook& OrderBook::operator=(OrderBook&& other) noexcept {
   if (this == &other) {
     return *this;
   }
@@ -67,6 +67,36 @@ OrderBook& OrderBook::operator=(OrderBook&& other) {
   return *this;
 }
 
+void OrderBook::register_on_order_changes(std::function<void(const Order&)> callback) {
+  std::unique_lock lock(rw_mtx);  // Lock the OrderBook for writing
+  on_order_changes = std::move(callback);
+}
+
+size_t OrderBook::size() const noexcept {
+  std::shared_lock lock(rw_mtx);  // Lock the OrderBook for reading
+  return id_map.size();
+}
+
+size_t OrderBook::buy_size() const noexcept {
+  std::shared_lock lock(rw_mtx);  // Lock the OrderBook for reading
+  size_t count = 0;
+  for (const auto& [price, orders] : buy_orders) {
+    count += orders.size();
+  }
+  return count;
+}
+
+size_t OrderBook::sell_size() const noexcept {
+  std::shared_lock lock(rw_mtx);  // Lock the OrderBook for reading
+  size_t count = 0;
+  for (const auto& [price, orders] : sell_orders) {
+    count += orders.size();
+  }
+  return count;
+}
+
+
+
 void OrderBook::add_order(const Order& order) {
   std::unique_lock lock(rw_mtx);  // Lock the OrderBook for writing
   auto it = id_map.find(order.order_id);
@@ -75,11 +105,11 @@ void OrderBook::add_order(const Order& order) {
                              std::to_string(order.order_id));
   }
   if (order.side == 1) {
-    buy_orders[order.price].push_back(std::make_unique<Order>(order));
+    buy_orders[order.price].push_back(order);
     id_map[order.order_id] = {order.price, true,
                               std::prev(this->buy_orders[order.price].end())};
   } else {
-    sell_orders[order.price].push_back(std::make_unique<Order>(order));
+    sell_orders[order.price].push_back(order);
     id_map[order.order_id] = {order.price, false,
                               std::prev(this->sell_orders[order.price].end())};
   }
