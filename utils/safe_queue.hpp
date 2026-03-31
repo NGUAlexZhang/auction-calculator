@@ -1,13 +1,35 @@
-#include "safe_queue.h"
+#pragma once
+#include <queue>
+#include <mutex>
+#include <shared_mutex>
+#include <condition_variable>
 
 template<typename T>
-SafeQueue<T>::SafeQueue(SafeQueue&& other) noexcept{
+class SafeQueue {
+public:
+    explicit SafeQueue() = default;
+    SafeQueue(const SafeQueue<T>&) = delete;
+    SafeQueue& operator=(const SafeQueue<T>&) = delete;
+    SafeQueue(SafeQueue<T>&&) noexcept;
+    SafeQueue& operator=(SafeQueue<T>&&) noexcept;
+    void push(const T& item);
+    T front() const;
+    void pop();
+    bool empty() const;
+    size_t size() const;
+private:
+    std::queue<T> _queue;
+    mutable std::shared_mutex _mutex;
+};
+
+template<typename T>
+SafeQueue<T>::SafeQueue(SafeQueue<T>&& other) noexcept{
     std::unique_lock lock(other._mutex);  // Lock the other queue for writing
     _queue = std::move(other._queue);
 }
 
 template<typename T>
-SafeQueue<T>& SafeQueue<T>::operator=(SafeQueue&& other) noexcept {
+SafeQueue<T>& SafeQueue<T>::operator=(SafeQueue<T>&& other) noexcept {
     if (this == &other) {
         return *this;
     }
