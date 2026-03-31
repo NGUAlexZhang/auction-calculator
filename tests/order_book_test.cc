@@ -18,10 +18,10 @@ TEST(OrderBookTest, TestAddAndRemoveOrder) {
       }
       order_books[order.sym].add_order(order);
     }
-    order_books[first_order.sym].remove_order(first_order.order_id);
+    order_books[first_order.sym].cancel_order(first_order.order_id);
   });
   EXPECT_ANY_THROW({
-    order_books[first_order.sym].remove_order(first_order.order_id);
+    order_books[first_order.sym].cancel_order(first_order.order_id);
   });
   
 }

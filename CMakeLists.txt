@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2.3)
+cmake_minimum_required(VERSION 3.20...4.2.3)
 
 project(AuctionCalculator VERSION 1.0 LANGUAGES CXX)
 
@@ -6,18 +6,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent) 
-FetchContent_Declare(googletest 
-                    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-)
 
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+add_subdirectory(third_party/googletest)
 
-FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
 set(TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test_data/")
-
 add_library(order_simulator 
             data/order_simulator.cc)
 target_include_directories(order_simulator PUBLIC 
@@ -32,11 +27,11 @@ target_compile_definitions(data_test PRIVATE
                            TEST_DATA_DIR="${TEST_DATA_DIR}")
 
 add_library(order_book
-            engine/order_book.cc)
+            model/order_book.cc)
 
 target_include_directories(order_book PUBLIC 
-                           engine
-                           model)
+                           model,
+                           utils)
 
 
 add_executable(order_book_test
