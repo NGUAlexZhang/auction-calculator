@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <iostream>
 
 enum class TradeType {
   NEW_ORDER,  // New order event
@@ -35,4 +36,5 @@ struct Trade {
   bool operator==(const std::uint64_t order_id) const {
     return this->order_id == order_id;
   }
+
 };

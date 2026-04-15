@@ -3,7 +3,8 @@
 #include <chrono>
 #include <iostream>
 
-#include "order_simulator.h"
+#include "data_simulator.h"
+#include "order.h"
 
 std::ostream& operator<<(std::ostream& os, const Order& order) {
   os << "Datetime: " << std::format("{:%Y/%m/%d %H:%M:%S}", order.datetime)
@@ -18,10 +19,11 @@ std::ostream& operator<<(std::ostream& os, const Order& order) {
 TEST(OrderSimulatorTest, TestReadCSV) {
   std::string test_data_dir = TEST_DATA_DIR "order.csv";
   EXPECT_NO_THROW({
-    OrderSimulator simulator(test_data_dir);
-    Order order = simulator.next_order();
+    DataSimulator<Order> simulator(test_data_dir);
+    Order order;
+    simulator >> order;
     std::cout << order << std::endl;
-    order = simulator.next_order();
+    simulator >> order;
     std::cout << order << std::endl;
   });
 }
@@ -30,17 +32,19 @@ TEST(OrderSimulatorTest, TestEndOfFile) {
   std::string test_data_dir = TEST_DATA_DIR "order.csv";
   EXPECT_THROW(
       {
-        OrderSimulator simulator(test_data_dir);
+        DataSimulator<Order> simulator(test_data_dir);
         while (true) {
-          auto order = simulator.next_order();
+          Order order;
+          simulator >> order;
         }
       },
       std::runtime_error);
 
   EXPECT_NO_THROW({
-    OrderSimulator simulator(test_data_dir);
+    DataSimulator<Order> simulator(test_data_dir);
     while (simulator.has_next()) {
-      Order order = simulator.next_order();
+      Order order;
+      simulator >> order;
     }
   });
 }

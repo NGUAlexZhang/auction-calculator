@@ -2,21 +2,23 @@
 #include <chrono>
 #include <unordered_map>
 #include "order_book.h"
-#include "order_simulator.h"
+#include "data_simulator.h"
 
 TEST(OrderBookTest, TestAddAndRemoveOrder) {
   std::unordered_map<std::string, OrderBook> order_books;
-  OrderSimulator simulator(TEST_DATA_DIR "order.csv");
+  DataSimulator<Order> simulator(TEST_DATA_DIR "order.csv");
   Order first_order;
   EXPECT_NO_THROW({
     bool readed = false;
-    while (simulator.has_next()) {
-      Order order = simulator.next_order();
+    Order order;
+    while (simulator >> order) {
       if (!readed) {
         first_order = order;
         readed = true;
       }
       order_books[order.sym].add_order(order);
+      std::cout << "Added order: " << order.order_id << " for symbol: " << order.sym
+                << " at price: " << order.price << std::endl;
     }
     order_books[first_order.sym].cancel_order(first_order.order_id);
   });

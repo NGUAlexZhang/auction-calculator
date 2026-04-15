@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdint>
 #include <string>
+#include <sstream>
 
 struct Order {
   std::chrono::sys_time<std::chrono::milliseconds>
@@ -20,3 +21,27 @@ struct Order {
   int64_t biz_index;    // Business index for the order at Shanghai Stock
                         // Exchange, not used at Shenzhen Stock Exchange
 };
+
+std::istream& operator >> (std::istream& is, Order& order) {
+    auto next_value = [&is]() -> std::string {
+        std::string value;
+        if (!std::getline(is, value, ',')) {
+            throw std::runtime_error("Failed to parse line stream");
+        }
+        return value;
+    };
+    auto datetime_str = next_value();
+    std::istringstream datetime_ss(datetime_str);
+    std::chrono::system_clock::time_point tp;
+    std::chrono::from_stream(datetime_ss, "%Y-%m-%d %H:%M:%S", tp);
+    order.datetime = std::chrono::time_point_cast<std::chrono::milliseconds>(tp);
+    order.sym = next_value();
+    order.price = std::stod(next_value());
+    order.size = std::stoull(next_value());
+    order.side = std::stoi(next_value());
+    order.order_type = std::stoul(next_value());
+    order.order_id = std::stoull(next_value());
+    order.channel_no = std::stoul(next_value());
+    order.biz_index = std::stoll(next_value());
+    return is;
+}
