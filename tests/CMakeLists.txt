@@ -13,6 +13,8 @@ target_link_libraries(data_test PRIVATE
 target_include_directories(data_test PRIVATE
                            ${CMAKE_CURRENT_SOURCE_DIR}/../data
                            ${CMAKE_CURRENT_SOURCE_DIR}/../model)
+target_link_libraries(data_test PRIVATE
+                      data_reader)
 
 target_link_libraries(order_book_test PRIVATE
                       gtest_main

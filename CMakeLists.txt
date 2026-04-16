@@ -12,5 +12,12 @@ add_library(order_book SHARED
 target_include_directories(order_book PUBLIC 
                            ${CMAKE_CURRENT_SOURCE_DIR}/model
                            ${CMAKE_CURRENT_SOURCE_DIR}/utils)
+add_library(data_reader SHARED
+            data/data_reader.cc)
+target_include_directories(data_reader PUBLIC
+                           ${CMAKE_CURRENT_SOURCE_DIR}/data
+                           ${CMAKE_CURRENT_SOURCE_DIR}/utils
+                           ${CMAKE_CURRENT_SOURCE_DIR}/model)
+
 add_subdirectory(third_party/googletest)
 add_subdirectory(tests)

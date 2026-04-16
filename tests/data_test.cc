@@ -4,8 +4,10 @@
 #include <iostream>
 
 #include "data_simulator.h"
+#include "data_reader.h"
 #include "order.h"
 #include "trade.h"
+#include <thread>
 
 std::ostream& operator<<(std::ostream& os, const Order& order) {
   os << "Datetime: " << std::format("{:%Y/%m/%d %H:%M:%S}", order.datetime)
@@ -90,9 +92,30 @@ TEST(TradeSimulatorTest, TestEndOfFile) {
     {
       DataSimulator<Trade> simulator(test_data_dir);
       Trade trade;
+      while(simulator >> trade) {
+        // std::cout << trade << std::endl;
+      }
     }
   );
 };
+
+TEST(DataReaderTest, TestReadTradeAndOrder) {
+  std::string trade_data_dir = TEST_DATA_DIR "trade.csv";
+  std::string order_data_dir = TEST_DATA_DIR "order.csv";
+  EXPECT_NO_THROW({
+    DataSimulator<Trade> trade_simulator(trade_data_dir);
+    DataSimulator<Order> order_simulator(order_data_dir);
+    auto queue = SafeQueue<Order>();
+    std::jthread trade_thread(read_trade, trade_data_dir, std::ref(queue));
+    std::jthread order_thread(read_order, order_data_dir, std::ref(queue));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    while(!queue.empty()) {
+      auto order = queue.front();
+      std::cout << order << std::endl;
+      queue.pop();
+    }
+  });
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
