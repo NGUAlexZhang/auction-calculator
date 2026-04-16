@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "order.h"
-#include "safe_queue.hpp"
+#include "safe_queue.h"
 
 class OrderBook {
 
