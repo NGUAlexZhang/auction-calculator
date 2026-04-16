@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <sstream>
+#include "trade.h"
 
 struct Order {
   std::chrono::sys_time<std::chrono::milliseconds>
