@@ -16,7 +16,6 @@ class DataSimulator {
  public:
   explicit DataSimulator(const std::filesystem::path& file_path);
   ~DataSimulator();
-  void read_next_obj(T& obj);
   [[nodiscard]] bool has_next() const;
   DataSimulator& operator >> (T& obj);
   explicit operator bool() const;

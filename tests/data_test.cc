@@ -2,12 +2,12 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
 
-#include "data_simulator.h"
 #include "data_reader.h"
+#include "data_simulator.h"
 #include "order.h"
 #include "trade.h"
-#include <thread>
 
 std::ostream& operator<<(std::ostream& os, const Order& order) {
   os << "Datetime: " << std::format("{:%Y/%m/%d %H:%M:%S}", order.datetime)
@@ -24,8 +24,7 @@ std::ostream& operator<<(std::ostream& os, const Trade& trade) {
      << ", Symbol: " << trade.sym << ", Price: " << trade.price
      << ", Size: " << trade.size << ", Bid Order ID: " << trade.bid_order_id
      << ", Ask Order ID: " << trade.ask_order_id
-     << ", Trade ID: " << trade.trade_id
-     << ", Exec Type: " << trade.exec_type
+     << ", Trade ID: " << trade.trade_id << ", Exec Type: " << trade.exec_type
      << ", Trade BS Flag: " << trade.trade_bs_flag
      << ", Channel No: " << trade.channel_no
      << ", Biz Index: " << trade.biz_index;
@@ -46,15 +45,6 @@ TEST(OrderSimulatorTest, TestReadCSV) {
 
 TEST(OrderSimulatorTest, TestEndOfFile) {
   std::string test_data_dir = TEST_DATA_DIR "order.csv";
-  EXPECT_THROW(
-      {
-        DataSimulator<Order> simulator(test_data_dir);
-        while (true) {
-          Order order;
-          simulator >> order;
-        }
-      },
-      std::runtime_error);
 
   EXPECT_NO_THROW({
     DataSimulator<Order> simulator(test_data_dir);
@@ -78,25 +68,13 @@ TEST(TradeSimulatorTest, TestReadCSV) {
 
 TEST(TradeSimulatorTest, TestEndOfFile) {
   std::string test_data_dir = TEST_DATA_DIR "trade.csv";
-  EXPECT_THROW(
-      {
-        DataSimulator<Trade> simulator(test_data_dir);
-        while (true) {
-          Trade trade;
-          simulator >> trade;
-        }
-      },
-      std::runtime_error);
-
-  EXPECT_NO_THROW(
-    {
-      DataSimulator<Trade> simulator(test_data_dir);
-      Trade trade;
-      while(simulator >> trade) {
-        // std::cout << trade << std::endl;
-      }
+  EXPECT_NO_THROW({
+    DataSimulator<Trade> simulator(test_data_dir);
+    Trade trade;
+    while (simulator >> trade) {
+      // std::cout << trade << std::endl;
     }
-  );
+  });
 };
 
 TEST(DataReaderTest, TestReadTradeAndOrder) {
@@ -105,14 +83,18 @@ TEST(DataReaderTest, TestReadTradeAndOrder) {
   EXPECT_NO_THROW({
     DataSimulator<Trade> trade_simulator(trade_data_dir);
     DataSimulator<Order> order_simulator(order_data_dir);
-    auto queue = SafeQueue<Order>();
+    SafeQueue<Order> queue;
     std::jthread trade_thread(read_trade, trade_data_dir, std::ref(queue));
     std::jthread order_thread(read_order, order_data_dir, std::ref(queue));
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    while(!queue.empty()) {
-      auto order = queue.front();
-      std::cout << order << std::endl;
-      queue.pop();
+    while (!trade_thread.get_stop_token().stop_requested() &&
+           !order_thread.get_stop_token().stop_requested()) {
+      while (!queue.empty()) {
+        auto order = queue.front();
+        // if (order.price == 0) {
+        //   std::cout << order << std::endl;
+        // }
+        queue.pop();
+      }
     }
   });
 }

@@ -27,29 +27,30 @@ void DataSimulator<T>::read_csv(const std::filesystem::path& file_path) {
   }
 }
 
-template<CanReadFromCSV T>
-void DataSimulator<T>::read_next_obj(T& obj) {
-  std::string line;
-  if (this->file.eof()) {
-    throw std::runtime_error("End of file reached");
-  }
-  std::getline(this->file, line);
-  std::istringstream ss(line);
-  ss >> obj;
-}
 
 template<CanReadFromCSV T>
 bool DataSimulator<T>::has_next() const { return !this->file.eof(); }
 
 template<CanReadFromCSV T>
 DataSimulator<T>& DataSimulator<T>::operator >> (T& obj) {
-  this->read_next_obj(obj);
+  std::string line;
+
+  if (!std::getline(this->file, line)) {
+      this->file.setstate(std::ios::failbit);
+      return *this;
+  }
+
+  std::istringstream ss(line);
+  if (!(ss >> obj)) {
+      this->file.setstate(std::ios::failbit);
+  }
+
   return *this;
 }
 
 template<CanReadFromCSV T>
 DataSimulator<T>::operator bool() const {
-  return this->file.is_open() && !this->file.eof();
+  return static_cast<bool>(this->file);
 }
 
 template<CanReadFromCSV T>
