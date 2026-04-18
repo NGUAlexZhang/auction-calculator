@@ -2,12 +2,12 @@
 #include "data_simulator.h"
 #endif
 
-template<CanReadFromCSV T>
+template <CanReadFromCSV T>
 DataSimulator<T>::DataSimulator(const std::filesystem::path& file_path) {
   this->read_csv(file_path);
 }
 
-template<CanReadFromCSV T>
+template <CanReadFromCSV T>
 void DataSimulator<T>::read_csv(const std::filesystem::path& file_path) {
   this->file.open(file_path);
   if (!this->file.is_open()) {
@@ -27,33 +27,34 @@ void DataSimulator<T>::read_csv(const std::filesystem::path& file_path) {
   }
 }
 
+template <CanReadFromCSV T>
+bool DataSimulator<T>::has_next() const {
+  return !this->file.eof();
+}
 
-template<CanReadFromCSV T>
-bool DataSimulator<T>::has_next() const { return !this->file.eof(); }
-
-template<CanReadFromCSV T>
-DataSimulator<T>& DataSimulator<T>::operator >> (T& obj) {
+template <CanReadFromCSV T>
+DataSimulator<T>& DataSimulator<T>::operator>>(T& obj) {
   std::string line;
 
   if (!std::getline(this->file, line)) {
-      this->file.setstate(std::ios::failbit);
-      return *this;
+    this->file.setstate(std::ios::failbit);
+    return *this;
   }
 
   std::istringstream ss(line);
   if (!(ss >> obj)) {
-      this->file.setstate(std::ios::failbit);
+    this->file.setstate(std::ios::failbit);
   }
 
   return *this;
 }
 
-template<CanReadFromCSV T>
+template <CanReadFromCSV T>
 DataSimulator<T>::operator bool() const {
   return static_cast<bool>(this->file);
 }
 
-template<CanReadFromCSV T>
+template <CanReadFromCSV T>
 DataSimulator<T>::~DataSimulator() {
   if (this->file.is_open()) {
     this->file.close();

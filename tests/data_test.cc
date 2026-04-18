@@ -84,16 +84,17 @@ TEST(DataReaderTest, TestReadTradeAndOrder) {
     DataSimulator<Trade> trade_simulator(trade_data_dir);
     DataSimulator<Order> order_simulator(order_data_dir);
     SafeQueue<Order> queue;
-    std::jthread trade_thread(read_trade, trade_data_dir, std::ref(queue));
-    std::jthread order_thread(read_order, order_data_dir, std::ref(queue));
-    while (!trade_thread.get_stop_token().stop_requested() &&
-           !order_thread.get_stop_token().stop_requested()) {
-      while (!queue.empty()) {
-        auto order = queue.front();
-        // if (order.price == 0) {
-        //   std::cout << order << std::endl;
-        // }
-        queue.pop();
+    std::atomic<bool> trade_finished = false;
+    std::atomic<bool> order_finished = false;
+    std::jthread order_thread(read_order, order_data_dir, std::ref(queue), std::ref(order_finished));
+    std::jthread trade_thread(read_trade, trade_data_dir, std::ref(queue), std::ref(trade_finished));
+    while (!trade_finished.load() || !order_finished.load()) {
+      std::optional<Order> order;
+      while (order = queue.try_pop()) {
+        if(order == std::nullopt) {
+          break;
+        }
+        std::cout << order.value() << std::endl;
       }
     }
   });

@@ -1,23 +1,23 @@
 #pragma once
 #define __DATA_SIMULATOR_H__
+#include <concepts>
 #include <filesystem>
 #include <fstream>
-#include <vector>
-#include <concepts>
 #include <sstream>
+#include <vector>
 
-template<typename T>
+template <typename T>
 concept CanReadFromCSV = requires(std::istream& is, T& obj) {
   { is >> obj } -> std::same_as<std::istream&>;
 };
 
-template<CanReadFromCSV T>
+template <CanReadFromCSV T>
 class DataSimulator {
  public:
   explicit DataSimulator(const std::filesystem::path& file_path);
   ~DataSimulator();
   [[nodiscard]] bool has_next() const;
-  DataSimulator& operator >> (T& obj);
+  DataSimulator& operator>>(T& obj);
   explicit operator bool() const;
 
  private:
