@@ -43,6 +43,7 @@ std::istream& operator >> (std::istream& is, Order& order) {
     order.order_type = std::stoul(next_value());
     order.order_id = std::stoull(next_value());
     order.channel_no = std::stoul(next_value());
+    order.seq_no = std::stoll(next_value());
     order.biz_index = std::stoll(next_value());
     return is;
 }
