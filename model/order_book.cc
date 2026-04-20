@@ -89,14 +89,12 @@ void OrderBook::cancel_order(const uint64_t& order_id) {
   this->_id_map.erase(it);
 }
 
-const std::map<double, std::list<OrderBook::OrderPtr>>& OrderBook::buy_orders() const noexcept {
+OrderBook::Snapshot OrderBook::snapshot() const {
   std::shared_lock lock(this->_rw_mtx);  // Lock the OrderBook for reading
-  return this->_bids;
-}
-
-const std::map<double, std::list<OrderBook::OrderPtr>>& OrderBook::sell_orders() const noexcept {
-  std::shared_lock lock(this->_rw_mtx);  // Lock the OrderBook for reading
-  return this->_asks;
+  return {
+      .bids = this->_bids,
+      .asks = this->_asks,
+  };
 }
 
 SafeQueue<OrderBook::OrderPtr>& OrderBook::order_queue() noexcept {

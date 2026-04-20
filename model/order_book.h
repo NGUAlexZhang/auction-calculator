@@ -13,6 +13,11 @@ class OrderBook {
 
 public:
   using OrderPtr = std::shared_ptr<Order>;
+  struct Snapshot {
+    std::map<double, std::list<OrderPtr>> bids;
+    std::map<double, std::list<OrderPtr>> asks;
+  };
+
   OrderBook() noexcept = default;
   OrderBook(const OrderBook&) noexcept = delete;
   OrderBook(OrderBook&&) noexcept;
@@ -20,8 +25,7 @@ public:
   OrderBook& operator=(OrderBook&&) noexcept;
   void add_order(const Order& order);
   void cancel_order(const uint64_t& order_id);
-  const std::map<double, std::list<OrderPtr>>& buy_orders() const noexcept;
-  const std::map<double, std::list<OrderPtr>>& sell_orders() const noexcept;
+  [[nodiscard]] Snapshot snapshot() const;
   size_t size() const noexcept;
   size_t buy_size() const noexcept;
   size_t sell_size() const noexcept;
