@@ -23,7 +23,7 @@ struct Order {
                         // Exchange, not used at Shenzhen Stock Exchange
 };
 
-std::istream& operator >> (std::istream& is, Order& order) {
+inline std::istream& operator >> (std::istream& is, Order& order) {
     auto next_value = [&is]() -> std::string {
         std::string value;
         if (!std::getline(is, value, ',')) {

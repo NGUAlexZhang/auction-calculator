@@ -11,8 +11,10 @@
 
 class CallAuction : public Auction {
  public:
-  explicit CallAuction(OrderBook& order_book) noexcept;
+  explicit CallAuction(OrderBook& order_book,
+                       bool start_processing = true) noexcept;
   void execute_auction() override;
+  [[nodiscard]] AuctionResult result() const;
  private:
   struct PriceCandidate {
     double price{0.0};
@@ -32,6 +34,8 @@ class CallAuction : public Auction {
   double _match_price{0.0};
   uint64_t _match_volume{0};
   uint64_t _match_remaining_volume{0};
+  uint64_t _buy_surplus{0};
+  uint64_t _sell_surplus{0};
   double _match_price_lower_bound{0.0};
   double _match_price_upper_bound{0.0};
 };

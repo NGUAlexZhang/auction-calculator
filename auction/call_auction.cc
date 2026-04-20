@@ -7,10 +7,13 @@
 #include <iostream>
 #include <limits>
 
-CallAuction::CallAuction(OrderBook& order_book) noexcept : Auction(order_book){
-  _processing_thread = std::jthread([this](std::stop_token stoken) {
-    this->process_orders(stoken);
-  });
+CallAuction::CallAuction(OrderBook& order_book, bool start_processing) noexcept
+    : Auction(order_book) {
+  if (start_processing) {
+    _processing_thread = std::jthread([this](std::stop_token stoken) {
+      this->process_orders(stoken);
+    });
+  }
 }
 
 void CallAuction::execute_auction() {
@@ -20,6 +23,17 @@ void CallAuction::execute_auction() {
       this->handler_order(order_ptr);
     }
   }
+}
+
+AuctionResult CallAuction::result() const {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return {
+      .match_price = _match_price,
+      .match_volume = _match_volume,
+      .buy_surplus = _buy_surplus,
+      .sell_surplus = _sell_surplus,
+      .has_match = _match_volume > 0,
+  };
 }
 
 void CallAuction::process_orders(std::stop_token stoken) {
@@ -88,6 +102,8 @@ void CallAuction::recompute_match_state() {
     _match_price = 0.0;
     _match_volume = 0;
     _match_remaining_volume = 0;
+    _buy_surplus = 0;
+    _sell_surplus = 0;
     _match_price_lower_bound = 0.0;
     _match_price_upper_bound = 0.0;
     return;
@@ -125,6 +141,8 @@ void CallAuction::recompute_match_state() {
     _match_price = 0.0;
     _match_volume = 0;
     _match_remaining_volume = 0;
+    _buy_surplus = 0;
+    _sell_surplus = 0;
     _match_price_lower_bound = 0.0;
     _match_price_upper_bound = 0.0;
     return;
@@ -137,6 +155,21 @@ void CallAuction::recompute_match_state() {
   _match_price_lower_bound = *min_price_it;
   _match_price_upper_bound = *max_price_it;
   _match_price = (_match_price_lower_bound + _match_price_upper_bound) / 2.0;
+
+  _buy_surplus = 0;
+  _sell_surplus = 0;
+  for (const auto& [bid_price, volume] : _price_bid_volume) {
+    if (bid_price >= _match_price) {
+      _buy_surplus += volume;
+    }
+  }
+  for (const auto& [ask_price, volume] : _price_ask_volume) {
+    if (ask_price <= _match_price) {
+      _sell_surplus += volume;
+    }
+  }
+  _buy_surplus -= _match_volume;
+  _sell_surplus -= _match_volume;
 }
 
 

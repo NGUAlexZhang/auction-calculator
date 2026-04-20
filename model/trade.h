@@ -34,7 +34,7 @@ struct Trade {
 
 };
 
-std::istream& operator >> (std::istream& is, Trade& trade) {
+inline std::istream& operator >> (std::istream& is, Trade& trade) {
   auto next_value = [&is]() -> std::string {
     std::string value;
     if (!std::getline(is, value, ',')) {

@@ -18,7 +18,7 @@
 //   return trade;
 // }
 
-Order trade_to_order(const Trade& trade) {
+inline Order trade_to_order(const Trade& trade) {
   Order order;
   order.datetime = trade.datetime;
   order.sym = trade.sym;

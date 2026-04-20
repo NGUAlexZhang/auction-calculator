@@ -12,6 +12,17 @@ add_library(order_book SHARED
 target_include_directories(order_book PUBLIC 
                            ${CMAKE_CURRENT_SOURCE_DIR}/model
                            ${CMAKE_CURRENT_SOURCE_DIR}/utils)
+
+add_library(auction_lib SHARED
+            auction/auction.cc
+            auction/call_auction.cc)
+target_include_directories(auction_lib PUBLIC
+                           ${CMAKE_CURRENT_SOURCE_DIR}/auction
+                           ${CMAKE_CURRENT_SOURCE_DIR}/model
+                           ${CMAKE_CURRENT_SOURCE_DIR}/utils)
+target_link_libraries(auction_lib PUBLIC
+                      order_book)
+
 add_library(data_reader SHARED
             data/data_reader.cc)
 target_include_directories(data_reader PUBLIC

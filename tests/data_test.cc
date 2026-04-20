@@ -43,6 +43,17 @@ TEST(OrderSimulatorTest, TestReadCSV) {
   });
 }
 
+TEST(OrderParserTest, TestParsesTrailingFieldsInOrder) {
+  std::istringstream line_stream(
+      "2026-04-21 09:15:00,600000,10.25,100,1,2,123456,7,890,9999");
+
+  Order order;
+  ASSERT_NO_THROW(line_stream >> order);
+  EXPECT_EQ(order.channel_no, 7U);
+  EXPECT_EQ(order.seq_no, 890);
+  EXPECT_EQ(order.biz_index, 9999);
+}
+
 TEST(OrderSimulatorTest, TestEndOfFile) {
   std::string test_data_dir = TEST_DATA_DIR "order.csv";
 
