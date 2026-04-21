@@ -22,3 +22,17 @@ void read_order(std::stop_token st, const std::filesystem::path& file_path,
   }
   finished = true;
 }
+
+void replay_csv_data(const std::filesystem::path& order_path,
+                     const std::filesystem::path& trade_path,
+                     EventProcessor& processor) {
+  auto source = MarketDataSourceFactory::create({
+      .type = MarketDataSourceType::Csv,
+      .order_path = order_path,
+      .trade_path = trade_path,
+  });
+  source->set_handler([&processor](MarketEvent event) { processor.submit(std::move(event)); });
+  source->start();
+  source->stop();
+  processor.flush();
+}
