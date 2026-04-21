@@ -36,5 +36,14 @@ target_include_directories(data_reader PUBLIC
 target_link_libraries(data_reader PUBLIC
                       auction_lib)
 
+add_executable(call_auction_app
+               main.cc)
+target_link_libraries(call_auction_app PRIVATE
+                      data_reader)
+target_include_directories(call_auction_app PRIVATE
+                           ${CMAKE_CURRENT_SOURCE_DIR}/auction
+                           ${CMAKE_CURRENT_SOURCE_DIR}/data
+                           ${CMAKE_CURRENT_SOURCE_DIR}/model)
+
 add_subdirectory(third_party/googletest)
 add_subdirectory(tests)

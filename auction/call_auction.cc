@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <format>
-#include <iostream>
 #include <limits>
 
 CallAuction::CallAuction(OrderBook& order_book, bool start_processing) noexcept
@@ -43,12 +41,6 @@ void CallAuction::process_orders(std::stop_token stoken) {
         this->_order_book.event_queue().drain_for(std::chrono::milliseconds(100));
     if (events.empty()) {
       continue;
-    }
-    for (const auto& event : events) {
-      std::cout << "Processing order book event: " << event.order_id
-                << ", Type: "
-                << (event.type == OrderBook::EventType::Add ? "Add" : "Cancel")
-                << std::endl;
     }
     this->handler_order();
   }

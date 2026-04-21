@@ -22,7 +22,7 @@ class CsvMarketDataSource : public IMarketDataSource {
       DataSimulator<Order>& simulator);
   static std::optional<MarketEvent> next_trade_event(
       DataSimulator<Trade>& simulator);
-  void emit_sorted_events();
+  void emit_merged_events(std::stop_token stoken);
 
   std::filesystem::path _order_path;
   std::filesystem::path _trade_path;

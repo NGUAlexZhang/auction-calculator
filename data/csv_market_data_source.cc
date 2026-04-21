@@ -1,9 +1,7 @@
 #include "csv_market_data_source.h"
 
-#include <algorithm>
 #include <stdexcept>
 #include <utility>
-#include <vector>
 
 CsvMarketDataSource::CsvMarketDataSource(const std::filesystem::path& order_path,
                                          const std::filesystem::path& trade_path)
@@ -17,12 +15,12 @@ void CsvMarketDataSource::start() {
   if (!_handler) {
     throw std::runtime_error("CsvMarketDataSource requires a handler before start");
   }
-  _reader_thread = std::jthread([this](std::stop_token) { emit_sorted_events(); });
+  _reader_thread = std::jthread(
+      [this](std::stop_token stoken) { emit_merged_events(stoken); });
 }
 
 void CsvMarketDataSource::stop() {
   if (_reader_thread.joinable()) {
-    _reader_thread.request_stop();
     _reader_thread.join();
   }
 }
@@ -47,20 +45,23 @@ std::optional<MarketEvent> CsvMarketDataSource::next_trade_event(
   return std::nullopt;
 }
 
-void CsvMarketDataSource::emit_sorted_events() {
+void CsvMarketDataSource::emit_merged_events(std::stop_token stoken) {
   DataSimulator<Order> order_simulator(_order_path);
   DataSimulator<Trade> trade_simulator(_trade_path);
-  std::vector<MarketEvent> events;
 
-  while (auto event = next_order_event(order_simulator)) {
-    events.push_back(*event);
-  }
-  while (auto event = next_trade_event(trade_simulator)) {
-    events.push_back(*event);
-  }
+  auto next_order = next_order_event(order_simulator);
+  auto next_trade = next_trade_event(trade_simulator);
 
-  std::sort(events.begin(), events.end());
-  for (auto& event : events) {
-    _handler(std::move(event));
+  while (!stoken.stop_requested() && (next_order || next_trade)) {
+    const bool emit_order =
+        next_order && (!next_trade || *next_order < *next_trade);
+    if (emit_order) {
+      _handler(std::move(*next_order));
+      next_order = next_order_event(order_simulator);
+      continue;
+    }
+
+    _handler(std::move(*next_trade));
+    next_trade = next_trade_event(trade_simulator);
   }
 }
