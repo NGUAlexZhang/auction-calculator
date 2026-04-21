@@ -17,8 +17,6 @@ TEST(OrderBookTest, TestAddAndRemoveOrder) {
         readed = true;
       }
       order_books[order.sym].add_order(order);
-      std::cout << "Added order: " << order.order_id << " for symbol: " << order.sym
-                << " at price: " << order.price << std::endl;
     }
     order_books[first_order.sym].cancel_order(first_order.order_id);
   });

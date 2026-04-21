@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
-#include <iostream>
 #include <thread>
 
 #include "data_reader.h"
@@ -9,37 +8,13 @@
 #include "order.h"
 #include "trade.h"
 
-std::ostream& operator<<(std::ostream& os, const Order& order) {
-  os << "Datetime: " << std::format("{:%Y/%m/%d %H:%M:%S}", order.datetime)
-     << ", Symbol: " << order.sym << ", Price: " << order.price
-     << ", Size: " << order.size << ", Side: " << order.side
-     << ", Order Type: " << order.order_type << ", Order ID: " << order.order_id
-     << ", Channel No: " << order.channel_no << ", Seq No: " << order.seq_no
-     << ", Biz Index: " << order.biz_index;
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Trade& trade) {
-  os << "Datetime: " << std::format("{:%Y/%m/%d %H:%M:%S}", trade.datetime)
-     << ", Symbol: " << trade.sym << ", Price: " << trade.price
-     << ", Size: " << trade.size << ", Bid Order ID: " << trade.bid_order_id
-     << ", Ask Order ID: " << trade.ask_order_id
-     << ", Trade ID: " << trade.trade_id << ", Exec Type: " << trade.exec_type
-     << ", Trade BS Flag: " << trade.trade_bs_flag
-     << ", Channel No: " << trade.channel_no
-     << ", Biz Index: " << trade.biz_index;
-  return os;
-}
-
 TEST(OrderSimulatorTest, TestReadCSV) {
   std::string test_data_dir = TEST_DATA_DIR "order.csv";
   EXPECT_NO_THROW({
     DataSimulator<Order> simulator(test_data_dir);
     Order order;
     simulator >> order;
-    std::cout << order << std::endl;
     simulator >> order;
-    std::cout << order << std::endl;
   });
 }
 
@@ -71,9 +46,7 @@ TEST(TradeSimulatorTest, TestReadCSV) {
     DataSimulator<Trade> simulator(test_data_dir);
     Trade trade;
     simulator >> trade;
-    std::cout << trade << std::endl;
     simulator >> trade;
-    std::cout << trade << std::endl;
   });
 }
 
@@ -92,8 +65,6 @@ TEST(DataReaderTest, TestReadTradeAndOrder) {
   std::string trade_data_dir = TEST_DATA_DIR "trade.csv";
   std::string order_data_dir = TEST_DATA_DIR "order.csv";
   EXPECT_NO_THROW({
-    DataSimulator<Trade> trade_simulator(trade_data_dir);
-    DataSimulator<Order> order_simulator(order_data_dir);
     SafeQueue<Order> queue;
     std::atomic<bool> trade_finished = false;
     std::atomic<bool> order_finished = false;
@@ -105,7 +76,6 @@ TEST(DataReaderTest, TestReadTradeAndOrder) {
         if(order == std::nullopt) {
           break;
         }
-        std::cout << order.value() << std::endl;
       }
     }
   });
