@@ -17,6 +17,8 @@
 namespace {
 
 struct AppOptions {
+  EventProcessor::AuctionWindow auction_window{
+      EventProcessor::AuctionWindow::None};
   std::filesystem::path order_path;
   std::filesystem::path trade_path;
   size_t batch_size{500};
@@ -40,7 +42,9 @@ void print_usage(std::string_view program_name) {
             << "  --show-matches         Print matched orders at the end\n"
             << "  --no-matches           Skip matched order details "
                "(default)\n"
-            << "  --match-limit <n>      Print at most n matched orders\n";
+            << "  --match-limit <n>      Print at most n matched orders\n"
+            << "  --auction-window <mode>  none | opening-a-share | "
+               "closing-a-share\n";
 }
 
 void print_auction_result(const AuctionResult& result, size_t processed_events) {
@@ -100,6 +104,22 @@ AppOptions parse_options(int argc, char** argv) {
       options.match_limit = static_cast<size_t>(std::stoull(argv[++i]));
       continue;
     }
+    if (arg == "--auction-window") {
+      if (i + 1 >= argc) {
+        throw std::runtime_error("--auction-window requires a value");
+      }
+      const std::string_view mode = argv[++i];
+      if (mode == "none") {
+        options.auction_window = EventProcessor::AuctionWindow::None;
+      } else if (mode == "opening-a-share") {
+        options.auction_window = EventProcessor::AuctionWindow::AShareOpening;
+      } else if (mode == "closing-a-share") {
+        options.auction_window = EventProcessor::AuctionWindow::AShareClosing;
+      } else {
+        throw std::runtime_error(std::format("Unknown auction window: {}", mode));
+      }
+      continue;
+    }
     throw std::runtime_error(std::format("Unknown argument: {}", arg));
   }
 
@@ -120,7 +140,7 @@ int main(int argc, char** argv) {
     const auto options = parse_options(argc, argv);
     OrderBook order_book;
     CallAuction auction(order_book, false);
-    EventProcessor processor(order_book, auction);
+    EventProcessor processor(order_book, auction, options.auction_window);
     auto source = MarketDataSourceFactory::create({
         .type = MarketDataSourceType::Csv,
         .order_path = options.order_path,
@@ -145,9 +165,15 @@ int main(int argc, char** argv) {
 
     std::cout << std::format(
         "Starting simulated realtime call auction replay with batch_size={}, "
-        "sleep={}ms, progress={}, show_matches={}\n",
+        "sleep={}ms, progress={}, show_matches={}, auction_window={}\n",
         options.batch_size, options.sleep_interval.count(), options.show_progress,
-        options.show_matches);
+        options.show_matches,
+        options.auction_window == EventProcessor::AuctionWindow::None
+            ? "none"
+            : options.auction_window ==
+                      EventProcessor::AuctionWindow::AShareOpening
+                  ? "opening-a-share"
+                  : "closing-a-share");
     source->start();
     source->stop();
 
