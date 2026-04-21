@@ -17,7 +17,7 @@ CallAuction::CallAuction(OrderBook& order_book, bool start_processing) noexcept
 }
 
 void CallAuction::execute_auction() {
-  this->_order_book.order_queue().drain_for(std::chrono::milliseconds(0));
+  this->_order_book.event_queue().drain_for(std::chrono::milliseconds(0));
   this->handler_order();
 }
 
@@ -34,19 +34,16 @@ AuctionResult CallAuction::result() const {
 
 void CallAuction::process_orders(std::stop_token stoken) {
   while (!stoken.stop_requested()) {
-    auto orders =
-        this->_order_book.order_queue().drain_for(std::chrono::milliseconds(100));
-    if (orders.empty()) {
+    auto events =
+        this->_order_book.event_queue().drain_for(std::chrono::milliseconds(100));
+    if (events.empty()) {
       continue;
     }
-    for (const auto& order_ptr : orders) {
-      if (!order_ptr) {
-        continue;
-      }
-      auto daypoint = std::chrono::floor<std::chrono::days>(order_ptr->datetime);
-      auto timepoint = std::chrono::hh_mm_ss(order_ptr->datetime - daypoint);
-      std::cout << "Processing order: " << order_ptr->order_id
-                << ", Time: " << std::format("{:%H:%M:%S}", timepoint) << std::endl;
+    for (const auto& event : events) {
+      std::cout << "Processing order book event: " << event.order_id
+                << ", Type: "
+                << (event.type == OrderBook::EventType::Add ? "Add" : "Cancel")
+                << std::endl;
     }
     this->handler_order();
   }

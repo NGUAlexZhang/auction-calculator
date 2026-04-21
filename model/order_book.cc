@@ -7,7 +7,7 @@ OrderBook::OrderBook(OrderBook&& other) noexcept {
   _bids = std::move(other._bids);
   _asks = std::move(other._asks);
   _id_map = std::move(other._id_map);
-  _order_queue = std::move(other._order_queue);
+  _event_queue = std::move(other._event_queue);
 }
 
 OrderBook& OrderBook::operator=(OrderBook&& other) noexcept {
@@ -22,7 +22,7 @@ OrderBook& OrderBook::operator=(OrderBook&& other) noexcept {
   this->_bids = std::move(other._bids);
   this->_asks = std::move(other._asks);
   this->_id_map = std::move(other._id_map);
-  this->_order_queue = std::move(other._order_queue);
+  this->_event_queue = std::move(other._event_queue);
   return *this;
 }
 
@@ -71,7 +71,7 @@ void OrderBook::add_order(const Order& order) {
                                        std::prev(this->_asks[order.price].end())};
     }
   }
-  this->_order_queue.push(order_ptr);  // Add the order to the queue for processing
+  this->_event_queue.push({EventType::Add, order.order_id});
 }
 
 void OrderBook::cancel_order(const uint64_t& order_id) {
@@ -87,6 +87,8 @@ void OrderBook::cancel_order(const uint64_t& order_id) {
     this->_asks[location.price].erase(location.it);
   }
   this->_id_map.erase(it);
+  lock.unlock();
+  this->_event_queue.push({EventType::Cancel, order_id});
 }
 
 OrderBook::Snapshot OrderBook::snapshot() const {
@@ -97,8 +99,8 @@ OrderBook::Snapshot OrderBook::snapshot() const {
   };
 }
 
-SafeQueue<OrderBook::OrderPtr>& OrderBook::order_queue() noexcept {
-  return this->_order_queue;
+SafeQueue<OrderBook::Event>& OrderBook::event_queue() noexcept {
+  return this->_event_queue;
 }
 
 double OrderBook::best_bid() const noexcept {

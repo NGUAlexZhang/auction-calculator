@@ -41,6 +41,29 @@ TEST(CallAuctionTest, SelectsAUnifiedAuctionPriceForCrossingOrders) {
   EXPECT_EQ(result.sell_surplus, 0U);
 }
 
+TEST(CallAuctionTest, RecomputesAfterCancelEvents) {
+  OrderBook order_book;
+  order_book.add_order(MakeOrder(1, 1, 10.10, 100));
+  order_book.add_order(MakeOrder(2, -1, 10.05, 100));
+
+  CallAuction auction(order_book, false);
+  auction.execute_auction();
+
+  auto result = auction.result();
+  ASSERT_TRUE(result.has_match);
+  EXPECT_DOUBLE_EQ(result.match_price, 10.075);
+  EXPECT_EQ(result.match_volume, 100U);
+
+  order_book.cancel_order(2);
+  auction.execute_auction();
+
+  result = auction.result();
+  EXPECT_FALSE(result.has_match);
+  EXPECT_EQ(result.match_volume, 0U);
+  EXPECT_EQ(result.buy_surplus, 0U);
+  EXPECT_EQ(result.sell_surplus, 0U);
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

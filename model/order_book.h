@@ -13,6 +13,16 @@ class OrderBook {
 
 public:
   using OrderPtr = std::shared_ptr<Order>;
+  enum class EventType {
+    Add,
+    Cancel,
+  };
+
+  struct Event {
+    EventType type;
+    uint64_t order_id;
+  };
+
   struct Snapshot {
     std::map<double, std::list<OrderPtr>> bids;
     std::map<double, std::list<OrderPtr>> asks;
@@ -29,7 +39,7 @@ public:
   size_t size() const noexcept;
   size_t buy_size() const noexcept;
   size_t sell_size() const noexcept;
-  SafeQueue<OrderPtr>& order_queue() noexcept;
+  SafeQueue<Event>& event_queue() noexcept;
 
   [[nodiscard]] double best_bid() const noexcept;
 
@@ -46,5 +56,5 @@ public:
   std::unordered_map<uint64_t, OrderLocation>
       _id_map;                        // Map from order ID to order location
   mutable std::shared_mutex _rw_mtx;  // Mutex for thread safety
-  SafeQueue<OrderPtr> _order_queue;  // Queue for handling orders
+  SafeQueue<Event> _event_queue;  // Queue for order book change notifications
 };
