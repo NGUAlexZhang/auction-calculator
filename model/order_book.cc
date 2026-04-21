@@ -92,11 +92,42 @@ void OrderBook::cancel_order(const uint64_t& order_id) {
 }
 
 OrderBook::Snapshot OrderBook::snapshot() const {
+  return this->full_snapshot();
+}
+
+OrderBook::Snapshot OrderBook::full_snapshot() const {
   std::shared_lock lock(this->_rw_mtx);  // Lock the OrderBook for reading
   return {
       .bids = this->_bids,
       .asks = this->_asks,
   };
+}
+
+OrderBook::AggregatedSnapshot OrderBook::aggregated_snapshot() const {
+  std::shared_lock lock(this->_rw_mtx);
+  AggregatedSnapshot snapshot;
+
+  for (const auto& [price, orders] : this->_bids) {
+    uint64_t level_volume = 0;
+    for (const auto& order : orders) {
+      level_volume += order->size;
+    }
+    if (level_volume > 0) {
+      snapshot.bids.emplace(price, level_volume);
+    }
+  }
+
+  for (const auto& [price, orders] : this->_asks) {
+    uint64_t level_volume = 0;
+    for (const auto& order : orders) {
+      level_volume += order->size;
+    }
+    if (level_volume > 0) {
+      snapshot.asks.emplace(price, level_volume);
+    }
+  }
+
+  return snapshot;
 }
 
 SafeQueue<OrderBook::Event>& OrderBook::event_queue() noexcept {

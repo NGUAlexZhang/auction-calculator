@@ -31,6 +31,7 @@ AuctionResult CallAuction::result() const {
 }
 
 std::vector<Match> CallAuction::matches() const {
+  this->ensure_matches_current();
   std::lock_guard<std::mutex> lock(_mutex);
   return _matches;
 }
@@ -47,7 +48,7 @@ void CallAuction::process_orders(std::stop_token stoken) {
 }
 
 std::vector<double> CallAuction::candidate_prices(
-    const OrderBook::Snapshot& snapshot) const {
+    const OrderBook::AggregatedSnapshot& snapshot) const {
   std::vector<double> prices;
   prices.reserve(snapshot.bids.size() + snapshot.asks.size());
   for (const auto& [price, _] : snapshot.bids) {
@@ -62,22 +63,18 @@ std::vector<double> CallAuction::candidate_prices(
 }
 
 CallAuction::PriceCandidate CallAuction::evaluate_price(
-    const OrderBook::Snapshot& snapshot, double price) const {
+    const OrderBook::AggregatedSnapshot& snapshot, double price) const {
   uint64_t cumulative_bid_volume = 0;
   uint64_t cumulative_ask_volume = 0;
 
-  for (const auto& [bid_price, orders] : snapshot.bids) {
+  for (const auto& [bid_price, volume] : snapshot.bids) {
     if (bid_price >= price) {
-      for (const auto& order : orders) {
-        cumulative_bid_volume += order->size;
-      }
+      cumulative_bid_volume += volume;
     }
   }
-  for (const auto& [ask_price, orders] : snapshot.asks) {
+  for (const auto& [ask_price, volume] : snapshot.asks) {
     if (ask_price <= price) {
-      for (const auto& order : orders) {
-        cumulative_ask_volume += order->size;
-      }
+      cumulative_ask_volume += volume;
     }
   }
 
@@ -92,10 +89,10 @@ CallAuction::PriceCandidate CallAuction::evaluate_price(
 }
 
 std::vector<CallAuction::PrioritizedOrder> CallAuction::prioritized_buys(
-    const OrderBook::Snapshot& snapshot) const {
+    const OrderBook::Snapshot& snapshot, double match_price) const {
   std::vector<PrioritizedOrder> buys;
   for (const auto& [price, orders] : snapshot.bids) {
-    if (price < _match_price) {
+    if (price < match_price) {
       continue;
     }
     for (const auto& order : orders) {
@@ -119,10 +116,10 @@ std::vector<CallAuction::PrioritizedOrder> CallAuction::prioritized_buys(
 }
 
 std::vector<CallAuction::PrioritizedOrder> CallAuction::prioritized_sells(
-    const OrderBook::Snapshot& snapshot) const {
+    const OrderBook::Snapshot& snapshot, double match_price) const {
   std::vector<PrioritizedOrder> sells;
   for (const auto& [price, orders] : snapshot.asks) {
-    if (price > _match_price) {
+    if (price > match_price) {
       continue;
     }
     for (const auto& order : orders) {
@@ -145,17 +142,42 @@ std::vector<CallAuction::PrioritizedOrder> CallAuction::prioritized_sells(
   return sells;
 }
 
-void CallAuction::recompute_matches(const OrderBook::Snapshot& snapshot) {
-  std::vector<Match> matches;
-  if (_match_volume == 0) {
-    std::unique_lock lock(_mutex);
-    _matches.clear();
-    return;
+void CallAuction::ensure_matches_current() const {
+  double match_price = 0.0;
+  uint64_t match_volume = 0;
+  uint64_t match_state_version = 0;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (!_matches_dirty) {
+      return;
+    }
+    if (_match_volume == 0) {
+      _matches.clear();
+      _matches_dirty = false;
+      return;
+    }
+    match_price = _match_price;
+    match_volume = _match_volume;
+    match_state_version = _match_state_version;
   }
 
-  auto buys = this->prioritized_buys(snapshot);
-  auto sells = this->prioritized_sells(snapshot);
-  uint64_t remaining_match_volume = _match_volume;
+  this->recompute_matches(this->_order_book.full_snapshot(), match_price,
+                          match_volume, match_state_version);
+
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (_match_state_version != match_state_version) {
+    _matches_dirty = true;
+  }
+}
+
+void CallAuction::recompute_matches(const OrderBook::Snapshot& snapshot,
+                                    double match_price,
+                                    uint64_t match_volume,
+                                    uint64_t match_state_version) const {
+  std::vector<Match> matches;
+  auto buys = this->prioritized_buys(snapshot, match_price);
+  auto sells = this->prioritized_sells(snapshot, match_price);
+  uint64_t remaining_match_volume = match_volume;
   size_t buy_index = 0;
   size_t sell_index = 0;
 
@@ -178,7 +200,7 @@ void CallAuction::recompute_matches(const OrderBook::Snapshot& snapshot) {
     matches.push_back({
         .buy_order_id = buy.order->order_id,
         .sell_order_id = sell.order->order_id,
-        .price = _match_price,
+        .price = match_price,
         .quantity = quantity,
         .timestamp = std::max(buy.order->datetime, sell.order->datetime),
     });
@@ -196,10 +218,15 @@ void CallAuction::recompute_matches(const OrderBook::Snapshot& snapshot) {
   }
 
   std::unique_lock lock(_mutex);
+  if (_match_state_version != match_state_version) {
+    return;
+  }
   _matches = std::move(matches);
+  _matches_dirty = false;
 }
 
-void CallAuction::recompute_match_state(const OrderBook::Snapshot& snapshot) {
+void CallAuction::recompute_match_state(
+    const OrderBook::AggregatedSnapshot& snapshot) {
   const auto prices = this->candidate_prices(snapshot);
   if (prices.empty()) {
     std::unique_lock lock(_mutex);
@@ -210,7 +237,9 @@ void CallAuction::recompute_match_state(const OrderBook::Snapshot& snapshot) {
     _sell_surplus = 0;
     _match_price_lower_bound = 0.0;
     _match_price_upper_bound = 0.0;
+    ++_match_state_version;
     _matches.clear();
+    _matches_dirty = false;
     return;
   }
 
@@ -250,7 +279,9 @@ void CallAuction::recompute_match_state(const OrderBook::Snapshot& snapshot) {
     _sell_surplus = 0;
     _match_price_lower_bound = 0.0;
     _match_price_upper_bound = 0.0;
+    ++_match_state_version;
     _matches.clear();
+    _matches_dirty = false;
     return;
   }
 
@@ -264,27 +295,23 @@ void CallAuction::recompute_match_state(const OrderBook::Snapshot& snapshot) {
 
   _buy_surplus = 0;
   _sell_surplus = 0;
-  for (const auto& [bid_price, orders] : snapshot.bids) {
+  for (const auto& [bid_price, volume] : snapshot.bids) {
     if (bid_price >= _match_price) {
-      for (const auto& order : orders) {
-        _buy_surplus += order->size;
-      }
+      _buy_surplus += volume;
     }
   }
-  for (const auto& [ask_price, orders] : snapshot.asks) {
+  for (const auto& [ask_price, volume] : snapshot.asks) {
     if (ask_price <= _match_price) {
-      for (const auto& order : orders) {
-        _sell_surplus += order->size;
-      }
+      _sell_surplus += volume;
     }
   }
   _buy_surplus -= _match_volume;
   _sell_surplus -= _match_volume;
-  lock.unlock();
-  this->recompute_matches(snapshot);
+  ++_match_state_version;
+  _matches_dirty = true;
 }
 
 
 void CallAuction::handler_order() {
-  this->recompute_match_state(this->_order_book.snapshot());
+  this->recompute_match_state(this->_order_book.aggregated_snapshot());
 }

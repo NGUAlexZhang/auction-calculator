@@ -28,6 +28,11 @@ public:
     std::map<double, std::list<OrderPtr>> asks;
   };
 
+  struct AggregatedSnapshot {
+    std::map<double, uint64_t, std::greater<>> bids;
+    std::map<double, uint64_t> asks;
+  };
+
   OrderBook() noexcept = default;
   OrderBook(const OrderBook&) noexcept = delete;
   OrderBook(OrderBook&&) noexcept;
@@ -36,6 +41,8 @@ public:
   void add_order(const Order& order);
   void cancel_order(const uint64_t& order_id);
   [[nodiscard]] Snapshot snapshot() const;
+  [[nodiscard]] Snapshot full_snapshot() const;
+  [[nodiscard]] AggregatedSnapshot aggregated_snapshot() const;
   size_t size() const noexcept;
   size_t buy_size() const noexcept;
   size_t sell_size() const noexcept;
