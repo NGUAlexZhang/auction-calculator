@@ -87,6 +87,61 @@ TEST(CallAuctionTest, AllocatesByPriceThenTimePriority) {
   EXPECT_EQ(matches[1].quantity, 50U);
 }
 
+TEST(CallAuctionTest, ReturnsNoMatchWhenBestBidIsBelowBestAsk) {
+  OrderBook order_book;
+  order_book.add_order(MakeOrder(1, 1, 9.90, 100));
+  order_book.add_order(MakeOrder(2, -1, 10.00, 100));
+
+  CallAuction auction(order_book, false);
+  auction.execute_auction();
+
+  const auto result = auction.result();
+  EXPECT_FALSE(result.has_match);
+  EXPECT_EQ(result.match_volume, 0U);
+  EXPECT_EQ(result.buy_surplus, 0U);
+  EXPECT_EQ(result.sell_surplus, 0U);
+  EXPECT_TRUE(auction.matches().empty());
+}
+
+TEST(CallAuctionTest, UsesMidpointWhenMultiplePricesTie) {
+  OrderBook order_book;
+  order_book.add_order(MakeOrder(1, 1, 10.20, 100));
+  order_book.add_order(MakeOrder(2, -1, 10.00, 100));
+
+  CallAuction auction(order_book, false);
+  auction.execute_auction();
+
+  const auto result = auction.result();
+  ASSERT_TRUE(result.has_match);
+  EXPECT_NEAR(result.match_price, 10.10, 1e-9);
+  EXPECT_EQ(result.match_volume, 100U);
+
+  const auto matches = auction.matches();
+  ASSERT_EQ(matches.size(), 1U);
+  EXPECT_NEAR(matches[0].price, 10.10, 1e-9);
+}
+
+TEST(CallAuctionTest, GivesHigherPricedBuyOrdersPriorityOverEarlierLowerPricedOnes) {
+  OrderBook order_book;
+  order_book.add_order(MakeOrder(1, 1, 10.00, 100));
+  order_book.add_order(MakeOrder(2, 1, 10.10, 100));
+  order_book.add_order(MakeOrder(3, -1, 10.00, 100));
+
+  CallAuction auction(order_book, false);
+  auction.execute_auction();
+
+  const auto result = auction.result();
+  ASSERT_TRUE(result.has_match);
+  EXPECT_EQ(result.match_volume, 100U);
+  EXPECT_NEAR(result.match_price, 10.10, 1e-9);
+
+  const auto matches = auction.matches();
+  ASSERT_EQ(matches.size(), 1U);
+  EXPECT_EQ(matches[0].buy_order_id, 2U);
+  EXPECT_EQ(matches[0].sell_order_id, 3U);
+  EXPECT_EQ(matches[0].quantity, 100U);
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
