@@ -12,8 +12,8 @@ class CallAuction : public Auction {
   explicit CallAuction(OrderBook& order_book,
                        bool start_processing = true) noexcept;
   void execute_auction() override;
-  [[nodiscard]] AuctionResult result() const;
-  [[nodiscard]] std::vector<Match> matches() const;
+  [[nodiscard]] AuctionResult result() const override;
+  [[nodiscard]] std::vector<Match> matches() const override;
  private:
   struct PriceCandidate {
     double price{0.0};

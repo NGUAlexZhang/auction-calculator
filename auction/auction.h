@@ -33,6 +33,8 @@ class Auction {
 public:
     Auction(OrderBook& order_book) noexcept;
     virtual void execute_auction() = 0;
+    [[nodiscard]] virtual AuctionResult result() const = 0;
+    [[nodiscard]] virtual std::vector<Match> matches() const = 0;
     virtual ~Auction() = default;
 protected:
     OrderBook& _order_book;
