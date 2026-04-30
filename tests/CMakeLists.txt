@@ -14,6 +14,9 @@ add_executable(call_auction_test
 add_executable(event_processor_test
                event_processor_test.cc)
 
+add_executable(loop_queue_test
+               loop_queue_test.cc)
+
 target_link_libraries(data_test PRIVATE 
                       gtest_main)
 target_include_directories(data_test PRIVATE
@@ -42,6 +45,12 @@ target_include_directories(event_processor_test PRIVATE
                            ${CMAKE_CURRENT_SOURCE_DIR}/../auction
                            ${CMAKE_CURRENT_SOURCE_DIR}/../data
                            ${CMAKE_CURRENT_SOURCE_DIR}/../model)
+
+target_link_libraries(loop_queue_test PRIVATE
+                      gtest_main)
+
+target_include_directories(loop_queue_test PRIVATE
+                           ${CMAKE_CURRENT_SOURCE_DIR}/../utils)
 
 target_compile_definitions(order_book_test PRIVATE TEST_DATA_DIR="${TEST_DATA_DIR}")
 target_compile_definitions(data_test PRIVATE TEST_DATA_DIR="${TEST_DATA_DIR}")
